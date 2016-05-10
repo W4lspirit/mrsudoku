@@ -1,67 +1,119 @@
 
 (ns mrsudoku.rules)
 
-(defsystem arith-simpl
-           [and-contraire (and ?x (not ?x))->false
-            and-true-l (and true ?x) ->?x
-            and-true-r (and ?x true) ->?x]
-           with (top-down (or-else and-contraire
-                                   and-true-l
-                                   and-true-r)))
+;;This section of code  was written by  https://github.com/fredokun
+;;https://github.com/fredokun/rescribe/blob/master/test/rescribe/examples/proplog.clj
+;;begin
 
-[and-idem (and ?x ?x) -> ?x
- and-false-l (and false ?x) -> false
- and-false-r (and false ?x) -> false
- (or ?x (not ?x)) -> true
- (or true ?x) -> true
- (or (not (not ?x)))-> ?x
- (not true)-> false
- (not false)-> true
- (==> true ?x)->?x
- (==> false ?x)->true
- (==> ?x true)->true
- (==> ?x false)-> (not ?x)
- (<=> ?x ?x)->true
- (<=> true ?x)->?x
- (<=> false ?x)-> (not ?x)]
-[suppr-impl (==> ?x ?y)-> (or (not ?x)?y)
- suppr-equiv (?x ?y)-> (and (==> ?x ?y) (==> ?y ?x))]
-;;and-or-not
-with top-down (or-else suppr-impl
-                       suppr-equiv
-                       success)
+(defsystem simplify
+           [;; negation
+            simpl-not-true (not true) -> false
+            simpl-not-false (not false) -> true
+            simpl-not-not (not (not ?X)) -> ?X
+            ;; conjunction
+            simpl-and-absurd-l (and ?X (not ?X)) -> false
+            simpl-and-absurd-r (and (not ?X) ?X) -> false
+            simpl-and-true-l (and true ?X) -> ?X
+            simpl-and-true-r (and ?X true) -> ?X
+            simpl-and-false-l (and false ?X) -> false
+            simpl-and-false-r (and ?X false) -> false
+            ;; disjunction
+            simpl-or-exclude-l (or ?X (not ?X)) -> true
+            simpl-or-exclude-r (or (not ?X) ?X) -> true
+            simpl-or-true-l (or true ?X) -> true
+            simpl-or-true-r (or ?X true) -> true
+            simpl-or-false-l (or false ?X) -> ?X
+            simpl-or-false-r (or ?X false) -> ?X
+            ;; implication
+            simpl-impl-refl (==> ?X ?X) -> true
+            simpl-impl-true-l (==> true ?X) -> ?X
+            simpl-impl-true-r (==> ?X true) -> true
+            simpl-impl-false-l (==> false ?X) -> true
+            simpl-impl-false-r (==> ?X false) -> (not ?X)
+            ;; equivalence
+            simpl-equiv-refl (<=> ?X ?X) -> true
+            simpl-equiv-true-l (<=> true ?X) -> ?X
+            simpl-equiv-true-r (<=> ?X true) -> ?X
+            simpl-equiv-false-l (<=> false ?X) -> (not ?X)
+            simpl-equiv-false-r (<=> ?X false) -> (not ?X)
+            ] with (bottom-up (or-else simpl-not-true
+                                       simpl-not-false
+                                       simpl-not-not
+                                       simpl-and-absurd-l
+                                       simpl-and-absurd-r
+                                       simpl-and-true-l
+                                       simpl-and-true-r
+                                       simpl-and-false-l
+                                       simpl-and-false-r
+                                       simpl-or-exclude-l
+                                       simpl-or-exclude-r
+                                       simpl-or-true-l
+                                       simpl-or-true-r
+                                       simpl-or-false-l
+                                       simpl-or-false-r
+                                       simpl-impl-refl
+                                       simpl-impl-true-l
+                                       simpl-impl-true-r
+                                       simpl-impl-false-l
+                                       simpl-impl-false-r
+                                       simpl-equiv-refl
+                                       simpl-equiv-true-l
+                                       simpl-equiv-true-r
+                                       simpl-equiv-false-l
+                                       simpl-equiv-false-r
+                                       success)))
+
+(defsystem and-or-form
+           [and-or-impl (==> ?X ?Y) -> (or (not ?X) ?Y)
+            and-or-equiv (<=> ?X ?Y) -> (and (==> ?X ?Y) (==> ?Y ?X))]
+           with (bottom-up (or-else and-or-impl
+                                    and-or-equiv
+                                    success)))
 
 
 
-;;nnf
-[nnf-not (not (not ?x))->?x
- nnf-and (not (and ?x ?y))-> (or (not ?x ) (not ?y))
- nnf-or (not (or ?x ?y))-> (and (not ?x) (not ?y))]
-with top-down (or-else nnf-not
-                       nnf-and
-                       nnf-or
-                       success)
+(defsystem negation-normal-form
+           [nnf-not-not (not (not ?X)) -> ?X
+            nnf-morgan-and (not (and ?X ?Y)) -> (or (not ?X) (not ?Y))
+            nnf-morgan-or (not (or ?X ?Y)) -> (and (not ?X) (not ?Y))
+            ] with (top-down (or-else nnf-not-not
+                                      nnf-morgan-and
+                                      nnf-morgan-or
+                                      success)))
 
-;;forme normale conjonctive
-[cnf-l (or (and ?x ?y)?z)-> (and (or ?x ?z) (or ?y ?z))
- cnf-r (or ?x (and ?y ?z)) -> (and (or ?x ?y) (or ?x ?z))]
-with top-down (or-else cnf-l
-                       cnf-r
-                       success)
 
-(defn literal? [phi]
-  (or (symbol? phi)
-      (= (first phi) 'not)))
+(defn nnf [prop]
+  (-> prop
+      (and-or-form)
+      (negation-normal-form)))
 
-(defn dcnf-algo [phi]
-  (if (literal? phi)
-    [phi,phi]
-    (let [[conn, g,d]phi
-          [vg,g'] (dcnf-algo g)
-          [vd,d'] (dcnf-algo d)
-          v (gensym "x")]
-      [v,(list 'and (cnf (list '<=> v (list conn vg vd))) (list 'and g' d'))])))
+(fact "Some formulas put in NNF."
 
-(defn dcnf [phi]
-  (let [[v1,phi'] (dcnf-algo phi)]
-    (list 'and v phi')))
+      (nnf '(==> x (==> (==> x y) y)))
+      => '(or (not x) (or (and x (not y)) y)))
+
+;;{
+
+;; ## Conjunctive normal forms
+
+;;}
+
+(defsystem conjunctive-normal-form
+           [cnf-not-not (not (not ?X)) -> ?X
+            cnf-morgan-and (not (and ?X ?Y)) -> (or (not ?X) (not ?Y))
+            cnf-morgan-or (not (or ?X ?Y)) -> (and (not ?X) (not ?Y))
+            cnf-distrib-l (or (and ?X ?Y) ?Z) -> (and (or ?X ?Z) (or ?Y ?Z))
+            cnf-distrib-r (or ?X (and ?Y ?Z)) -> (and (or ?X ?Y) (or ?X ?Y))
+            ] with (top-down (or-else cnf-not-not
+                                      cnf-morgan-and
+                                      cnf-morgan-or
+                                      cnf-distrib-l
+                                      cnf-distrib-r
+                                      success)))
+
+
+;;end
+(defn cnf [prop]
+  (-> prop
+      (conjunctive-normal-form)))
+
