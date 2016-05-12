@@ -1,11 +1,10 @@
-
 (ns mrsudoku.control
   (:require
-   [mrsudoku.grid :as g]
-   [mrsudoku.view :as v]
-   [mrsudoku.engine :as e]
-   [clojure.pprint :as pp]
-   [seesaw.core :refer [alert text! invoke-later select]]))
+    [mrsudoku.grid :as g]
+    [mrsudoku.view :as v]
+    [mrsudoku.engine :as e]
+    [clojure.pprint :as pp]
+    [seesaw.core :refer [alert text! invoke-later select]]))
 
 (defn mk-grid-controller
   [grid] (atom {:grid grid}))

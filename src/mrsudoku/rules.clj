@@ -1,5 +1,7 @@
-
-(ns mrsudoku.rules)
+(ns mrsudoku.rules
+  (:use midje.sweet)
+  (:require [rescribe.system :refer [defsystem]]
+            [rescribe.strategy :refer [bottom-up top-down or-else success]]))
 
 ;;This section of code  was written by  https://github.com/fredokun
 ;;https://github.com/fredokun/rescribe/blob/master/test/rescribe/examples/proplog.clj
@@ -84,6 +86,7 @@
 
 (defn nnf [prop]
   (-> prop
+      (simplify)
       (and-or-form)
       (negation-normal-form)))
 

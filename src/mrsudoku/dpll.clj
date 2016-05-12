@@ -7,7 +7,7 @@
       (first (first phi))
       (recur (rest phi)))
     nil))
-    
+
 (defn make-literal-true
   [phi x]
   (reduce (fn [phi' clause]
@@ -17,7 +17,7 @@
                                                  (reduced nil)
                                                  (conj phi' (disj clause (list `not x))))
               :else (conj phi' clause))) #{} phi))
-              
+
 (defn make-literal-false
   [phi x]
   (reduce (fn [phi' clause]
@@ -49,11 +49,11 @@
   (loop [s clause res #{}]
     (if (seq s)
       (let [e (first s)]
-        (if (= 2 (count e)) ;; (= '(not _) e)
+        (if (= 2 (count e))
           (recur (rest s) (conj res (second e)))
           (recur (rest s) res)))
-        res)))
-      
+      res)))
+
 (defn positive-literals
   "Ensemble des littéraux positifs dans phi"
   [phi]
@@ -78,7 +78,7 @@
   [phi vars]
   (reduce make-literal-true phi vars))
 
-(defn make-negative 
+(defn make-negative
   "Instantiation négative des vars dans phi"
   [phi vars]
   (reduce make-literal-false phi vars))
@@ -88,7 +88,7 @@
   (merge
     (reduce (fn [mres e] (assoc mres e true)) {} a)
     (reduce (fn [mres e] (assoc mres e false)) {} n)))
-
+;;crash
 (defn rule-affirmative-negative
   [phi]
   (let [[affirmatives negatives] (find-affirmative-negative phi)
@@ -101,20 +101,20 @@
     (if (symbol? l)
       l
       (second l))))
-      
+
 (defn seq-positives [phi] "renvoie une sequence de symboles positif"
   (reduce (fn [seq clause]
             (concat (filter symbol? clause) seq))
           `() phi))
-          
+
 (defn max-true-split [phi]
   (let [freqs (frequencies (seq-positives phi))]
     (key (apply max-key val freqs))))
 
 (defn rule-split [phi splitter]
-            (let [x (splitter phi)]
-              [[(make-literal-true x phi) x true]
-               [(make-literal-false x phi) x false]]))
+  (let [x (splitter phi)]
+    [[(make-literal-true x phi) x true]
+     [(make-literal-false x phi) x false]]))
 
 (defn dpll [phi inst splitter]
   (if (empty? phi)

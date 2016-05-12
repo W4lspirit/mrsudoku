@@ -1,4 +1,3 @@
-
 (ns mrsudoku.utils
   (:use midje.sweet))
 

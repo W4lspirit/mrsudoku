@@ -9,9 +9,9 @@
   (let [ctrl (control/mk-grid-controller grid)
         main-frame (v/mk-main-frame grid ctrl)]
     (invoke-later
-     (-> main-frame
-         pack!
-         show!))
+      (-> main-frame
+          pack!
+          show!))
     ctrl))
 
 (defn -main
